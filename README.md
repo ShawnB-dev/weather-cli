@@ -7,6 +7,7 @@ A simple Rust weather application with both command-line and GUI modes.
 - CLI mode: `cargo run -- <city>`
 - GUI mode: `cargo run`
 - Current weather and 5-day forecast
+- ASCII weather art in CLI and GUI
 - Satellite imagery link in GUI
 - Fetches weather from `wttr.in`
 
