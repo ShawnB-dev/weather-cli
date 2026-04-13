@@ -89,6 +89,9 @@ impl eframe::App for WeatherApp {
             ui.add_space(6.0);
 
             if let Some(summary) = &self.summary {
+                ui.label(egui::RichText::new(&summary.ascii_art).font(egui::FontId::monospace(12.0)));
+                ui.separator();
+
                 ui.label(egui::RichText::new(format!("{}", summary.city)).heading());
                 ui.label(format!("Country: {}", summary.country));
                 ui.label(format!("Condition: {}", summary.description));

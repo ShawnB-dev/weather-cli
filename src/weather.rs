@@ -10,6 +10,7 @@ pub struct WeatherSummary {
     pub wind_kmph: String,
     pub description: String,
     pub forecast: Vec<ForecastDay>,
+    pub ascii_art: String,
 }
 
 #[derive(Clone, Debug)]
@@ -71,7 +72,8 @@ struct TextValue {
 impl WeatherSummary {
     pub fn format_ansi(&self) -> String {
         let mut output = format!(
-            "Weather for {}, {}:\n  Temperature: {}°C\n  Feels like: {}°C\n  Condition: {}\n  Humidity: {}%\n  Wind: {} km/h\n\n5-Day Forecast:\n",
+            "{}\n\nWeather for {}, {}:\n  Temperature: {}°C\n  Feels like: {}°C\n  Condition: {}\n  Humidity: {}%\n  Wind: {} km/h\n\n5-Day Forecast:\n",
+            self.ascii_art,
             self.city,
             self.country,
             self.temperature_c,
@@ -145,6 +147,22 @@ pub fn fetch_weather(city: &str) -> Result<WeatherSummary, String> {
         }
     }).collect();
 
+    // Fetch ASCII art
+    let ascii_url = format!("https://wttr.in/{}", query);
+    let ascii_response = client
+        .get(&ascii_url)
+        .header(reqwest::header::USER_AGENT, "weather-cli/0.1")
+        .header(reqwest::header::ACCEPT, "text/plain")
+        .send()
+        .map_err(|error| format!("Network error for ASCII: {}", error))?
+        .error_for_status()
+        .map_err(|error| format!("Weather service error for ASCII: {}", error))?
+        .text()
+        .map_err(|error| format!("Failed to get ASCII text: {}", error))?;
+
+    // Extract ASCII art (first few lines)
+    let ascii_art = ascii_response.lines().take(7).collect::<Vec<_>>().join("\n");
+
     Ok(WeatherSummary {
         city: area_name,
         country,
@@ -154,5 +172,6 @@ pub fn fetch_weather(city: &str) -> Result<WeatherSummary, String> {
         wind_kmph: current.windspeed_kmph.clone().unwrap_or_else(|| "Unknown".into()),
         description,
         forecast,
+        ascii_art,
     })
 }
