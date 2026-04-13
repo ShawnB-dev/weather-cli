@@ -9,12 +9,22 @@ pub struct WeatherSummary {
     pub humidity: String,
     pub wind_kmph: String,
     pub description: String,
+    pub forecast: Vec<ForecastDay>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ForecastDay {
+    pub date: String,
+    pub max_temp_c: String,
+    pub min_temp_c: String,
+    pub description: String,
 }
 
 #[derive(Deserialize)]
 struct WeatherResponse {
     current_condition: Vec<CurrentCondition>,
     nearest_area: Vec<NearestArea>,
+    weather: Vec<WeatherDay>,
 }
 
 #[derive(Deserialize)]
@@ -38,14 +48,30 @@ struct NearestArea {
 }
 
 #[derive(Deserialize)]
+struct WeatherDay {
+    date: String,
+    #[serde(rename = "maxtempC")]
+    maxtemp_c: String,
+    #[serde(rename = "mintempC")]
+    mintemp_c: String,
+    hourly: Vec<Hourly>,
+}
+
+#[derive(Deserialize)]
+struct Hourly {
+    #[serde(rename = "weatherDesc")]
+    weather_desc: Vec<TextValue>,
+}
+
+#[derive(Deserialize)]
 struct TextValue {
     value: String,
 }
 
 impl WeatherSummary {
     pub fn format_ansi(&self) -> String {
-        format!(
-            "Weather for {}, {}:\n  Temperature: {}°C\n  Feels like: {}°C\n  Condition: {}\n  Humidity: {}%\n  Wind: {} km/h",
+        let mut output = format!(
+            "Weather for {}, {}:\n  Temperature: {}°C\n  Feels like: {}°C\n  Condition: {}\n  Humidity: {}%\n  Wind: {} km/h\n\n5-Day Forecast:\n",
             self.city,
             self.country,
             self.temperature_c,
@@ -53,7 +79,11 @@ impl WeatherSummary {
             self.description,
             self.humidity,
             self.wind_kmph,
-        )
+        );
+        for day in &self.forecast {
+            output.push_str(&format!("  {}: {}°C / {}°C - {}\n", day.date, day.max_temp_c, day.min_temp_c, day.description));
+        }
+        output
     }
 }
 
@@ -105,6 +135,16 @@ pub fn fetch_weather(city: &str) -> Result<WeatherSummary, String> {
         .map(|country| country.value.clone())
         .unwrap_or_else(|| "Unknown".into());
 
+    let forecast = weather.weather.iter().take(5).map(|day| {
+        let desc = day.hourly.get(0).and_then(|h| h.weather_desc.get(0)).map(|tv| tv.value.clone()).unwrap_or_else(|| "Unknown".into());
+        ForecastDay {
+            date: day.date.clone(),
+            max_temp_c: day.maxtemp_c.clone(),
+            min_temp_c: day.mintemp_c.clone(),
+            description: desc,
+        }
+    }).collect();
+
     Ok(WeatherSummary {
         city: area_name,
         country,
@@ -113,5 +153,6 @@ pub fn fetch_weather(city: &str) -> Result<WeatherSummary, String> {
         humidity: current.humidity.clone().unwrap_or_else(|| "Unknown".into()),
         wind_kmph: current.windspeed_kmph.clone().unwrap_or_else(|| "Unknown".into()),
         description,
+        forecast,
     })
 }

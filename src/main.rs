@@ -96,6 +96,15 @@ impl eframe::App for WeatherApp {
                 ui.label(format!("Feels like: {} °C", summary.feels_like_c));
                 ui.label(format!("Humidity: {}%", summary.humidity));
                 ui.label(format!("Wind: {} km/h", summary.wind_kmph));
+
+                ui.separator();
+                ui.label(egui::RichText::new("5-Day Forecast").heading());
+                for day in &summary.forecast {
+                    ui.label(format!("{}: {}°C / {}°C - {}", day.date, day.max_temp_c, day.min_temp_c, day.description));
+                }
+
+                ui.separator();
+                ui.hyperlink_to("View Satellite Image", format!("https://wttr.in/{}.png", self.city.replace(" ", "+")));
             } else {
                 ui.colored_label(egui::Color32::LIGHT_BLUE, &self.status);
             }
